@@ -3,7 +3,11 @@ from google import genai
 from sqlalchemy import func
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import (
+    HTTPAuthorizationCredentials,
+    HTTPBearer,
+    OAuth2PasswordRequestForm,
+)
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -30,6 +34,7 @@ from security import (
 
 
 app = FastAPI()
+bearer_scheme = HTTPBearer(auto_error=False)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -39,13 +44,19 @@ app.add_middleware(
 )
 
 
-def get_current_user(request: Request):
-    token = request.cookies.get("access_token")
+def get_current_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+):
+    token = credentials.credentials if credentials else None
 
     if not token:
         auth_header = request.headers.get("authorization", "")
         if auth_header.lower().startswith("bearer "):
             token = auth_header.split(" ", 1)[1]
+
+    if not token:
+        token = request.cookies.get("access_token")
 
     if not token:
         raise HTTPException(
@@ -346,7 +357,9 @@ def login(
     )
 
     return {
-        "message": "Login successful"
+        "message": "Login successful",
+        "access_token": access_token,
+        "token_type": "bearer",
     }
 
 

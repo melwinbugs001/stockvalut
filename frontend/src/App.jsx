@@ -139,9 +139,15 @@ function App() {
           fetchProducts(false);
         } else {
           setLoggedIn(false);
+          if (window.location.pathname === "/dashboard") {
+            navigate("/login");
+          }
         }
       } catch (error) {
         setLoggedIn(false);
+        if (window.location.pathname === "/dashboard") {
+          navigate("/login");
+        }
       }
     };
 
